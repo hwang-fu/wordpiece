@@ -79,6 +79,17 @@ impl TrainingConfig {
     pub fn get_continuing_subword_prefix(&self) -> &str {
         self.continuing_subword_prefix.as_str()
     }
+
+    /// Sets whether to lowercase text.
+    pub fn lowercase(mut self, lowercase: bool) -> Self {
+        self.lowercase = lowercase;
+        self
+    }
+
+    /// Gets whether to lowercase text.
+    pub fn get_lowercase(&self) -> bool {
+        self.lowercase
+    }
 }
 
 impl Default for TrainingConfig {
