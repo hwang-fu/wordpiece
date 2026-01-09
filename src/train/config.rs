@@ -32,6 +32,11 @@ impl TrainingConfig {
         self.vocab_size = size;
         self
     }
+
+    /// Gets the target vocabulary size.
+    pub fn get_vocab_size(&self) -> usize {
+        self.vocab_size
+    }
 }
 
 impl Default for TrainingConfig {
