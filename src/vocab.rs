@@ -66,4 +66,9 @@ impl Vocab {
     pub fn pad_id(&self) -> Option<usize> {
         self.get_id(&self.special_tokens.pad)
     }
+
+    /// Returns the ID of the [CLS] token.
+    pub fn cls_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.cls)
+    }
 }
