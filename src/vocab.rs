@@ -61,4 +61,9 @@ impl Vocab {
     pub fn unk_id(&self) -> Option<usize> {
         self.get_id(&self.special_tokens.unk)
     }
+
+    /// Returns the ID of the padding token [PAD].
+    pub fn pad_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.pad)
+    }
 }
