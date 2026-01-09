@@ -45,3 +45,42 @@ pub fn is_hangul(c: char) -> bool {
 pub fn is_individual_token_char(c: char) -> bool {
     is_cjk_character(c) || is_hiragana(c) || is_katakana(c) || is_hangul(c)
 }
+
+/// Tokenizes text with awareness of CJK and special Unicode characters.
+///
+/// CJK characters are split into individual tokens, while other
+/// text follows standard whitespace splitting.
+///
+/// # Arguments
+/// * `tokens` - Pre-tokenized tokens (e.g., from BERT pre-tokenization)
+///
+/// # Returns
+/// Tokens with CJK characters separated into individual tokens
+pub fn split_cjk(tokens: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+
+    for token in tokens {
+        let mut current = String::new();
+
+        for c in token.chars() {
+            if is_individual_token_char(c) {
+                // Flush any accumulated non-CJK characters
+                if !current.is_empty() {
+                    result.push(current);
+                    current = String::new();
+                }
+                // Add CJK character as individual token
+                result.push(c.to_string());
+            } else {
+                current.push(c);
+            }
+        }
+
+        // Flush remaining characters
+        if !current.is_empty() {
+            result.push(current);
+        }
+    }
+
+    result
+}
