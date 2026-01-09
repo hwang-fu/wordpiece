@@ -43,6 +43,9 @@ impl TrainingConfig {
 
     /// Sets the minimum token frequency threshold.
     pub fn set_min_frequency(mut self, freq: usize) -> Self {
+        if freq == 0 {
+            panic!("target token frequency is supposed to be greater than zero")
+        }
         self.min_frequency = freq;
         self
     }
