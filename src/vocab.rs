@@ -46,4 +46,9 @@ impl Vocab {
     pub fn is_empty(&self) -> bool {
         self.id_to_token.is_empty()
     }
+
+    /// Looks up a token's ID. Returns None if not found.
+    pub fn get_id(&self, token: &str) -> Option<usize> {
+        self.token_to_id.get(token).copied()
+    }
 }
