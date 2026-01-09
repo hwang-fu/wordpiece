@@ -68,3 +68,50 @@ pub fn process_corpus_text(text: &str, lowercase: bool) -> HashMap<String, usize
 
     word_counts
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_process_corpus_text_simple() {
+        let text = "hello world\nhello rust";
+        let counts = process_corpus_text(text, true);
+
+        assert_eq!(counts.get("hello"), Some(&2));
+        assert_eq!(counts.get("world"), Some(&1));
+        assert_eq!(counts.get("rust"), Some(&1));
+    }
+
+    #[test]
+    fn test_process_corpus_text_with_punctuation() {
+        let text = "Hello, world!";
+        let counts = process_corpus_text(text, true);
+
+        assert_eq!(counts.get("hello"), Some(&1));
+        assert_eq!(counts.get(","), Some(&1));
+        assert_eq!(counts.get("world"), Some(&1));
+        assert_eq!(counts.get("!"), Some(&1));
+    }
+
+    #[test]
+    fn test_process_corpus_text_cjk() {
+        let text = "你好世界";
+        let counts = process_corpus_text(text, false);
+
+        assert_eq!(counts.get("你"), Some(&1));
+        assert_eq!(counts.get("好"), Some(&1));
+        assert_eq!(counts.get("世"), Some(&1));
+        assert_eq!(counts.get("界"), Some(&1));
+    }
+
+    #[test]
+    fn test_process_corpus_text_no_lowercase() {
+        let text = "Hello World";
+        let counts = process_corpus_text(text, false);
+
+        assert_eq!(counts.get("Hello"), Some(&1));
+        assert_eq!(counts.get("World"), Some(&1));
+        assert_eq!(counts.get("hello"), None);
+    }
+}

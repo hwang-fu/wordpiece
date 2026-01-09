@@ -81,7 +81,7 @@ impl TrainingConfig {
     }
 
     /// Sets whether to lowercase text.
-    pub fn lowercase(mut self, lowercase: bool) -> Self {
+    pub fn set_lowercase(mut self, lowercase: bool) -> Self {
         self.lowercase = lowercase;
         self
     }
@@ -113,5 +113,32 @@ impl Default for TrainingConfig {
             lowercase: true,
             special_tokens: SpecialTokens::default(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_config() {
+        let config = TrainingConfig::default();
+        assert_eq!(config.get_vocab_size(), 30_000);
+        assert_eq!(config.get_min_frequency(), 2);
+        assert_eq!(config.get_limit_alphabet(), 1_000);
+        assert_eq!(config.get_continuing_subword_prefix(), "##");
+        assert!(config.get_lowercase());
+    }
+
+    #[test]
+    fn test_builder_pattern() {
+        let config = TrainingConfig::new()
+            .set_vocab_size(10_000)
+            .set_min_frequency(5)
+            .set_lowercase(false);
+
+        assert_eq!(config.get_vocab_size(), 10_000);
+        assert_eq!(config.get_min_frequency(), 5);
+        assert!(!config.get_lowercase());
     }
 }
