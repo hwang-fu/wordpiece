@@ -21,3 +21,8 @@ fn is_punctuation(c: char) -> bool {
         '\u{3000}'..='\u{303F}'    // CJK symbols and punctuation
     )
 }
+
+/// Checks if a character is a whitespace character.
+fn is_whitespace(c: char) -> bool {
+    c.is_whitespace()
+}
