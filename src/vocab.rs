@@ -76,4 +76,9 @@ impl Vocab {
     pub fn sep_id(&self) -> Option<usize> {
         self.get_id(&self.special_tokens.sep)
     }
+
+    /// Returns a reference to the special tokens configuration.
+    pub fn special_tokens(&self) -> &SpecialTokens {
+        &self.special_tokens
+    }
 }
