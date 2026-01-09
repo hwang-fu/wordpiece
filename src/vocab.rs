@@ -1,0 +1,140 @@
+//! Vocabulary data structure for token-ID mappings.
+
+use std::collections::HashMap;
+
+use crate::config::SpecialTokens;
+
+/// A vocabulary mapping between tokens and their IDs.
+///
+/// Maintains bidirectional mappings for efficient lookup in both directions.
+#[derive(Debug, Clone)]
+pub struct Vocab {
+    /// Maps token strings to their numeric IDs
+    token_to_id: HashMap<String, usize>,
+    /// Maps numeric IDs back to token strings
+    id_to_token: Vec<String>,
+    /// Special tokens configuration
+    special_tokens: SpecialTokens,
+}
+
+impl Vocab {
+    /// Creates a new vocabulary from a list of tokens.
+    ///
+    /// Tokens are assigned IDs in order (0, 1, 2, ...).
+    /// Special tokens should be included at the beginning of the list.
+    pub fn new(tokens: Vec<String>, special_tokens: SpecialTokens) -> Self {
+        let mut token_to_id = HashMap::with_capacity(tokens.len());
+        for (id, token) in tokens.iter().enumerate() {
+            token_to_id.insert(token.clone(), id);
+        }
+
+        let id_to_token = tokens;
+
+        Vocab {
+            token_to_id,
+            id_to_token,
+            special_tokens,
+        }
+    }
+
+    /// Returns the number of tokens in the vocabulary.
+    pub fn len(&self) -> usize {
+        self.id_to_token.len()
+    }
+
+    /// Returns true if the vocabulary is empty.
+    pub fn is_empty(&self) -> bool {
+        self.id_to_token.is_empty()
+    }
+
+    /// Looks up a token's ID. Returns None if not found.
+    pub fn get_id(&self, token: &str) -> Option<usize> {
+        self.token_to_id.get(token).copied()
+    }
+
+    /// Looks up a token by ID. Returns None if ID is out of range.
+    pub fn get_token(&self, id: usize) -> Option<&str> {
+        self.id_to_token.get(id).map(|s| s.as_str())
+    }
+
+    /// Returns the ID of the unknown token [UNK].
+    pub fn unk_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.unk)
+    }
+
+    /// Returns the ID of the padding token [PAD].
+    pub fn pad_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.pad)
+    }
+
+    /// Returns the ID of the [CLS] token.
+    pub fn cls_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.cls)
+    }
+
+    /// Returns the ID of the [SEP] token.
+    pub fn sep_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.sep)
+    }
+
+    /// Returns a reference to the special tokens configuration.
+    pub fn special_tokens(&self) -> &SpecialTokens {
+        &self.special_tokens
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_vocab() -> Vocab {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "[MASK]".to_string(),
+            "hello".to_string(),
+            "world".to_string(),
+            "##ing".to_string(),
+        ];
+        Vocab::new(tokens, SpecialTokens::default())
+    }
+
+    #[test]
+    fn test_vocab_len() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.len(), 8);
+    }
+
+    #[test]
+    fn test_vocab_get_id() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.get_id("hello"), Some(5));
+        assert_eq!(vocab.get_id("[UNK]"), Some(1));
+        assert_eq!(vocab.get_id("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_vocab_get_token() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.get_token(5), Some("hello"));
+        assert_eq!(vocab.get_token(100), None);
+    }
+
+    #[test]
+    fn test_special_token_ids() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.pad_id(), Some(0));
+        assert_eq!(vocab.unk_id(), Some(1));
+        assert_eq!(vocab.cls_id(), Some(2));
+        assert_eq!(vocab.sep_id(), Some(3));
+    }
+
+    #[test]
+    fn test_empty_vocab() {
+        let vocab = Vocab::new(vec![], SpecialTokens::default());
+        assert!(vocab.is_empty());
+        assert_eq!(vocab.len(), 0);
+    }
+}

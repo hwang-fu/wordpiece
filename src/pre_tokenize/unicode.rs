@@ -1,0 +1,151 @@
+//! Unicode-aware pre-tokenization utilities.
+//!
+//! Handles CJK characters, emojis, and other special Unicode ranges.
+
+/// Checks if a character is a CJK (Chinese, Japanese, Korean) character.
+///
+/// CJK characters are tokenized individually (each character = one token).
+pub fn is_cjk_character(c: char) -> bool {
+    // CJK Unified Ideographs and related blocks
+    matches!(c,
+        '\u{4E00}'..='\u{9FFF}' |   // CJK Unified Ideographs
+        '\u{3400}'..='\u{4DBF}' |   // CJK Unified Ideographs Extension A
+        '\u{20000}'..='\u{2A6DF}' | // CJK Unified Ideographs Extension B
+        '\u{2A700}'..='\u{2B73F}' | // CJK Unified Ideographs Extension C
+        '\u{2B740}'..='\u{2B81F}' | // CJK Unified Ideographs Extension D
+        '\u{2B820}'..='\u{2CEAF}' | // CJK Unified Ideographs Extension E
+        '\u{F900}'..='\u{FAFF}' |   // CJK Compatibility Ideographs
+        '\u{2F800}'..='\u{2FA1F}'   // CJK Compatibility Ideographs Supplement
+    )
+}
+
+/// Checks if a character is a Japanese Hiragana character.
+pub fn is_hiragana(c: char) -> bool {
+    matches!(c, '\u{3040}'..='\u{309F}')
+}
+
+/// Checks if a character is a Japanese Katakana character.
+pub fn is_katakana(c: char) -> bool {
+    matches!(c, '\u{30A0}'..='\u{30FF}' | '\u{31F0}'..='\u{31FF}')
+}
+
+/// Checks if a character is a Korean Hangul syllable.
+pub fn is_hangul(c: char) -> bool {
+    matches!(c,
+        '\u{AC00}'..='\u{D7AF}' |  // Hangul Syllables
+        '\u{1100}'..='\u{11FF}' |  // Hangul Jamo
+        '\u{3130}'..='\u{318F}'    // Hangul Compatibility Jamo
+    )
+}
+
+/// Checks if a character should be tokenized individually.
+///
+/// This includes CJK characters, which are typically tokenized
+/// as individual characters rather than grouped into words.
+pub fn is_individual_token_char(c: char) -> bool {
+    is_cjk_character(c) || is_hiragana(c) || is_katakana(c) || is_hangul(c)
+}
+
+/// Tokenizes text with awareness of CJK and special Unicode characters.
+///
+/// CJK characters are split into individual tokens, while other
+/// text follows standard whitespace splitting.
+///
+/// # Arguments
+/// * `tokens` - Pre-tokenized tokens (e.g., from BERT pre-tokenization)
+///
+/// # Returns
+/// Tokens with CJK characters separated into individual tokens
+pub fn split_cjk(tokens: Vec<String>) -> Vec<String> {
+    let mut result = Vec::new();
+
+    for token in tokens {
+        let mut current = String::new();
+
+        for c in token.chars() {
+            if is_individual_token_char(c) {
+                // Flush any accumulated non-CJK characters
+                if !current.is_empty() {
+                    result.push(current);
+                    current = String::new();
+                }
+                // Add CJK character as individual token
+                result.push(c.to_string());
+            } else {
+                current.push(c);
+            }
+        }
+
+        // Flush remaining characters
+        if !current.is_empty() {
+            result.push(current);
+        }
+    }
+
+    result
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_cjk_character() {
+        assert!(is_cjk_character('中'));
+        assert!(is_cjk_character('国'));
+        assert!(is_cjk_character('語'));
+        assert!(!is_cjk_character('a'));
+        assert!(!is_cjk_character('1'));
+    }
+
+    #[test]
+    fn test_is_hiragana() {
+        assert!(is_hiragana('あ'));
+        assert!(is_hiragana('ん'));
+        assert!(!is_hiragana('ア'));
+        assert!(!is_hiragana('a'));
+    }
+
+    #[test]
+    fn test_is_katakana() {
+        assert!(is_katakana('ア'));
+        assert!(is_katakana('ン'));
+        assert!(!is_katakana('あ'));
+        assert!(!is_katakana('a'));
+    }
+
+    #[test]
+    fn test_is_hangul() {
+        assert!(is_hangul('한'));
+        assert!(is_hangul('글'));
+        assert!(!is_hangul('a'));
+    }
+
+    #[test]
+    fn test_split_cjk_chinese() {
+        let tokens = vec!["你好世界".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["你", "好", "世", "界"]);
+    }
+
+    #[test]
+    fn test_split_cjk_mixed() {
+        let tokens = vec!["hello你好world".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["hello", "你", "好", "world"]);
+    }
+
+    #[test]
+    fn test_split_cjk_no_cjk() {
+        let tokens = vec!["hello".to_string(), "world".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["hello", "world"]);
+    }
+
+    #[test]
+    fn test_split_cjk_japanese_mixed() {
+        let tokens = vec!["日本語".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["日", "本", "語"]);
+    }
+}
