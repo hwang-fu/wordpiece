@@ -20,3 +20,23 @@ pub struct TrainingConfig {
     /// Special tokens to include in vocabulary (default: BERT-style)
     pub special_tokens: SpecialTokens,
 }
+
+impl TrainingConfig {
+    /// Creates a new TrainingConfig with default values.
+    pub fn new() -> Self {
+        TrainingConfig::default()
+    }
+}
+
+impl Default for TrainingConfig {
+    fn default() -> Self {
+        TrainingConfig {
+            vocab_size: 30_000,
+            min_frequency: 2,
+            limit_alphabet: 1_000,
+            continuing_subword_prefix: "##".to_string(),
+            lowercase: true,
+            special_tokens: SpecialTokens::default(),
+        }
+    }
+}
