@@ -71,4 +71,9 @@ impl Vocab {
     pub fn cls_id(&self) -> Option<usize> {
         self.get_id(&self.special_tokens.cls)
     }
+
+    /// Returns the ID of the [SEP] token.
+    pub fn sep_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.sep)
+    }
 }
