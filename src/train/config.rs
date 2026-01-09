@@ -29,6 +29,9 @@ impl TrainingConfig {
 
     /// Sets the target vocabulary size.
     pub fn set_vocab_size(mut self, size: usize) -> Self {
+        if size == 0 {
+            panic!("target vocabulary size is supposed to be greater than zero")
+        }
         self.vocab_size = size;
         self
     }
