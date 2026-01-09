@@ -20,7 +20,7 @@ pub struct SpecialTokens {
 
 impl Default for SpecialTokens {
     fn default() -> Self {
-        Self {
+        SpecialTokens {
             pad: "[PAD]".to_string(),
             unk: "[UNK]".to_string(),
             cls: "[CLS]".to_string(),
@@ -39,4 +39,14 @@ pub struct TokenizerConfig {
     pub max_length: Option<usize>,
     /// Whether to truncate sequences exceeding max_length (default: true)
     pub truncation: bool,
+}
+
+impl Default for TokenizerConfig {
+    fn default() -> Self {
+        TokenizerConfig {
+            add_special_tokens: true,
+            max_length: None,
+            truncation: true,
+        }
+    }
 }

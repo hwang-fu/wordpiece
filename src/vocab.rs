@@ -1,6 +1,6 @@
 //! Vocabulary data structure for token-ID mappings.
 
-use std::{collections::HashMap, str};
+use std::collections::HashMap;
 
 use crate::config::SpecialTokens;
 
