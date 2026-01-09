@@ -45,3 +45,26 @@ where
 
     Ok(word_counts)
 }
+
+/// Processes corpus text directly (for testing or in-memory corpora).
+///
+/// # Arguments
+/// * `text` - The corpus text
+/// * `lowercase` - Whether to lowercase the text
+///
+/// # Returns
+/// A HashMap mapping words to their frequencies
+pub fn process_corpus_text(text: &str, lowercase: bool) -> HashMap<String, usize> {
+    let mut word_counts = HashMap::new();
+
+    for line in text.lines() {
+        let normalized = normalize_nfc(line);
+        let tokens = pre_tokenize_bert(&normalized, lowercase);
+        let tokens = split_cjk(tokens);
+        for token in tokens {
+            *word_counts.entry(token).or_insert(0) += 1;
+        }
+    }
+
+    word_counts
+}
