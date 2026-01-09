@@ -1,6 +1,6 @@
 //! Vocabulary data structure for token-ID mappings.
 
-use std::collections::HashMap;
+use std::{collections::HashMap, str};
 
 use crate::config::SpecialTokens;
 
@@ -50,5 +50,10 @@ impl Vocab {
     /// Looks up a token's ID. Returns None if not found.
     pub fn get_id(&self, token: &str) -> Option<usize> {
         self.token_to_id.get(token).copied()
+    }
+
+    /// Looks up a token by ID. Returns None if ID is out of range.
+    pub fn get_token(&self, id: usize) -> Option<&str> {
+        self.id_to_token.get(id).map(|s| s.as_str())
     }
 }
