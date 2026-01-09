@@ -68,6 +68,17 @@ impl TrainingConfig {
     pub fn get_limit_alphabet(&self) -> usize {
         self.limit_alphabet
     }
+
+    /// Sets the continuing subword prefix.
+    pub fn set_continuing_subword_prefix(mut self, prefix: impl Into<String>) -> Self {
+        self.continuing_subword_prefix = prefix.into();
+        self
+    }
+
+    /// Gets the continuing subword prefix.
+    pub fn get_continuing_subword_prefix(&self) -> &str {
+        self.continuing_subword_prefix.as_str()
+    }
 }
 
 impl Default for TrainingConfig {
