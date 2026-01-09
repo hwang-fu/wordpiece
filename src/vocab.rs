@@ -56,4 +56,9 @@ impl Vocab {
     pub fn get_token(&self, id: usize) -> Option<&str> {
         self.id_to_token.get(id).map(|s| s.as_str())
     }
+
+    /// Returns the ID of the unknown token [UNK].
+    pub fn unk_id(&self) -> Option<usize> {
+        self.get_id(&self.special_tokens.unk)
+    }
 }
