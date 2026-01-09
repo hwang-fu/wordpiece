@@ -23,3 +23,8 @@ pub fn is_cjk_character(c: char) -> bool {
 pub fn is_hiragana(c: char) -> bool {
     matches!(c, '\u{3040}'..='\u{309F}')
 }
+
+/// Checks if a character is a Japanese Katakana character.
+pub fn is_katakana(c: char) -> bool {
+    matches!(c, '\u{30A0}'..='\u{30FF}' | '\u{31F0}'..='\u{31FF}')
+}
