@@ -28,3 +28,12 @@ pub fn is_hiragana(c: char) -> bool {
 pub fn is_katakana(c: char) -> bool {
     matches!(c, '\u{30A0}'..='\u{30FF}' | '\u{31F0}'..='\u{31FF}')
 }
+
+/// Checks if a character is a Korean Hangul syllable.
+pub fn is_hangul(c: char) -> bool {
+    matches!(c,
+        '\u{AC00}'..='\u{D7AF}' |  // Hangul Syllables
+        '\u{1100}'..='\u{11FF}' |  // Hangul Jamo
+        '\u{3130}'..='\u{318F}'    // Hangul Compatibility Jamo
+    )
+}
