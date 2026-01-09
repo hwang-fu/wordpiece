@@ -8,17 +8,17 @@ use crate::SpecialTokens;
 #[derive(Debug, Clone)]
 pub struct TrainingConfig {
     /// Target vocabulary size (default: 30,000)
-    pub vocab_size: usize,
+    vocab_size: usize,
     /// Minimum frequency for a token to be included (default: 2)
-    pub min_frequency: usize,
+    min_frequency: usize,
     /// Maximum size of the initial character alphabet (default: 1,000)
-    pub limit_alphabet: usize,
+    limit_alphabet: usize,
     /// Prefix for continuing subwords, e.g., "##" in "play" -> "play", "##ing" (default: "##")
-    pub continuing_subword_prefix: String,
+    continuing_subword_prefix: String,
     /// Whether to lowercase text during training (default: true)
-    pub lowercase: bool,
+    lowercase: bool,
     /// Special tokens to include in vocabulary (default: BERT-style)
-    pub special_tokens: SpecialTokens,
+    special_tokens: SpecialTokens,
 }
 
 impl TrainingConfig {
@@ -53,6 +53,20 @@ impl TrainingConfig {
     /// Gets the minimum token frequency threshold.
     pub fn get_min_frequency(&self) -> usize {
         self.min_frequency
+    }
+
+    /// Sets the maximum initial alphabet size.
+    pub fn set_limit_alphabet(mut self, limit: usize) -> Self {
+        if limit == 0 {
+            panic!("maximum initial alphabet size is supposed to be greater than zero")
+        }
+        self.limit_alphabet = limit;
+        self
+    }
+
+    /// Gets the maximum initial alphabet size.
+    pub fn get_limit_alphabet(&self) -> usize {
+        self.limit_alphabet
     }
 }
 
