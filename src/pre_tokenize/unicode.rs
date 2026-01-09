@@ -18,3 +18,8 @@ pub fn is_cjk_character(c: char) -> bool {
         '\u{2F800}'..='\u{2FA1F}'   // CJK Compatibility Ideographs Supplement
     )
 }
+
+/// Checks if a character is a Japanese Hiragana character.
+pub fn is_hiragana(c: char) -> bool {
+    matches!(c, '\u{3040}'..='\u{309F}')
+}
