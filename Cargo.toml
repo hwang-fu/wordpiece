@@ -1,0 +1,18 @@
+[package]
+name = "wordpiece"
+version = "0.1.0"
+edition = "2024"
+authors = ["Junzhe Wang <junzhe.hwangfu@gmail.com>"]
+description = "A production-ready WordPiece tokenizer implementation in Rust"
+license = "MIT"
+
+[dependencies]
+unicode-normalization = "0.1"
+
+[lib]
+name = "wordpiece"
+crate-type = ["rlib", "cdylib", "staticlib"]
+
+[[bin]]
+name = "wordpiece"
+path = "src/main.rs"
