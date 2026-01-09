@@ -36,4 +36,9 @@ impl Vocab {
             special_tokens,
         }
     }
+
+    /// Returns the number of tokens in the vocabulary.
+    pub fn len(&self) -> usize {
+        self.id_to_token.len()
+    }
 }
