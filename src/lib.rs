@@ -3,6 +3,7 @@
 mod config;
 mod error;
 mod normalize;
+mod pre_tokenize;
 mod vocab;
 
 // Re-export public types at crate root

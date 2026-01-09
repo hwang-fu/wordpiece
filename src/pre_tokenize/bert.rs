@@ -79,3 +79,52 @@ pub fn pre_tokenize_bert(text: &str, lowercase: bool) -> Vec<String> {
         tokens
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_simple_sentence() {
+        assert_eq!(
+            pre_tokenize_bert("Hello, Rust!", false),
+            vec!["Hello", ",", "Rust", "!"]
+        );
+    }
+
+    #[test]
+    fn test_lowercase() {
+        let result = pre_tokenize_bert("Hello Rust", true);
+        assert_eq!(result, vec!["hello", "rust"]);
+    }
+
+    #[test]
+    fn test_multiple_spaces() {
+        let result = pre_tokenize_bert("hello   Rust", false);
+        assert_eq!(result, vec!["hello", "Rust"]);
+    }
+
+    #[test]
+    fn test_leading_trailing_whitespace() {
+        let result = pre_tokenize_bert("  hello Rust  ", false);
+        assert_eq!(result, vec!["hello", "Rust"]);
+    }
+
+    #[test]
+    fn test_punctuation_only() {
+        let result = pre_tokenize_bert("...", false);
+        assert_eq!(result, vec![".", ".", "."]);
+    }
+
+    #[test]
+    fn test_empty_string() {
+        let result = pre_tokenize_bert("", false);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_contractions() {
+        let result = pre_tokenize_bert("don't", false);
+        assert_eq!(result, vec!["don", "'", "t"]);
+    }
+}

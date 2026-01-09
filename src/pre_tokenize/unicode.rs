@@ -84,3 +84,68 @@ pub fn split_cjk(tokens: Vec<String>) -> Vec<String> {
 
     result
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_cjk_character() {
+        assert!(is_cjk_character('中'));
+        assert!(is_cjk_character('国'));
+        assert!(is_cjk_character('語'));
+        assert!(!is_cjk_character('a'));
+        assert!(!is_cjk_character('1'));
+    }
+
+    #[test]
+    fn test_is_hiragana() {
+        assert!(is_hiragana('あ'));
+        assert!(is_hiragana('ん'));
+        assert!(!is_hiragana('ア'));
+        assert!(!is_hiragana('a'));
+    }
+
+    #[test]
+    fn test_is_katakana() {
+        assert!(is_katakana('ア'));
+        assert!(is_katakana('ン'));
+        assert!(!is_katakana('あ'));
+        assert!(!is_katakana('a'));
+    }
+
+    #[test]
+    fn test_is_hangul() {
+        assert!(is_hangul('한'));
+        assert!(is_hangul('글'));
+        assert!(!is_hangul('a'));
+    }
+
+    #[test]
+    fn test_split_cjk_chinese() {
+        let tokens = vec!["你好世界".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["你", "好", "世", "界"]);
+    }
+
+    #[test]
+    fn test_split_cjk_mixed() {
+        let tokens = vec!["hello你好world".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["hello", "你", "好", "world"]);
+    }
+
+    #[test]
+    fn test_split_cjk_no_cjk() {
+        let tokens = vec!["hello".to_string(), "world".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["hello", "world"]);
+    }
+
+    #[test]
+    fn test_split_cjk_japanese_mixed() {
+        let tokens = vec!["日本語".to_string()];
+        let result = split_cjk(tokens);
+        assert_eq!(result, vec!["日", "本", "語"]);
+    }
+}
