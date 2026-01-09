@@ -37,6 +37,17 @@ impl TrainingConfig {
     pub fn get_vocab_size(&self) -> usize {
         self.vocab_size
     }
+
+    /// Sets the minimum token frequency threshold.
+    pub fn set_min_frequency(mut self, freq: usize) -> Self {
+        self.min_frequency = freq;
+        self
+    }
+
+    /// Gets the minimum token frequency threshold.
+    pub fn get_min_frequency(&self) -> usize {
+        self.min_frequency
+    }
 }
 
 impl Default for TrainingConfig {
