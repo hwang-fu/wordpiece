@@ -37,3 +37,11 @@ pub fn is_hangul(c: char) -> bool {
         '\u{3130}'..='\u{318F}'    // Hangul Compatibility Jamo
     )
 }
+
+/// Checks if a character should be tokenized individually.
+///
+/// This includes CJK characters, which are typically tokenized
+/// as individual characters rather than grouped into words.
+pub fn is_individual_token_char(c: char) -> bool {
+    is_cjk_character(c) || is_hiragana(c) || is_katakana(c) || is_hangul(c)
+}
