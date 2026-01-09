@@ -90,6 +90,17 @@ impl TrainingConfig {
     pub fn get_lowercase(&self) -> bool {
         self.lowercase
     }
+
+    /// Sets the special tokens configuration.
+    pub fn set_special_tokens(mut self, tokens: SpecialTokens) -> Self {
+        self.special_tokens = tokens;
+        self
+    }
+
+    /// Gets the special tokens configuration.
+    pub fn get_special_tokens(&self) -> &SpecialTokens {
+        &self.special_tokens
+    }
 }
 
 impl Default for TrainingConfig {
