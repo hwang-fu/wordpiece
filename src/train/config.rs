@@ -26,6 +26,12 @@ impl TrainingConfig {
     pub fn new() -> Self {
         TrainingConfig::default()
     }
+
+    /// Sets the target vocabulary size.
+    pub fn set_vocab_size(mut self, size: usize) -> Self {
+        self.vocab_size = size;
+        self
+    }
 }
 
 impl Default for TrainingConfig {
