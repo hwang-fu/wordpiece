@@ -82,3 +82,59 @@ impl Vocab {
         &self.special_tokens
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn create_test_vocab() -> Vocab {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "[MASK]".to_string(),
+            "hello".to_string(),
+            "world".to_string(),
+            "##ing".to_string(),
+        ];
+        Vocab::new(tokens, SpecialTokens::default())
+    }
+
+    #[test]
+    fn test_vocab_len() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.len(), 8);
+    }
+
+    #[test]
+    fn test_vocab_get_id() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.get_id("hello"), Some(5));
+        assert_eq!(vocab.get_id("[UNK]"), Some(1));
+        assert_eq!(vocab.get_id("nonexistent"), None);
+    }
+
+    #[test]
+    fn test_vocab_get_token() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.get_token(5), Some("hello"));
+        assert_eq!(vocab.get_token(100), None);
+    }
+
+    #[test]
+    fn test_special_token_ids() {
+        let vocab = create_test_vocab();
+        assert_eq!(vocab.pad_id(), Some(0));
+        assert_eq!(vocab.unk_id(), Some(1));
+        assert_eq!(vocab.cls_id(), Some(2));
+        assert_eq!(vocab.sep_id(), Some(3));
+    }
+
+    #[test]
+    fn test_empty_vocab() {
+        let vocab = Vocab::new(vec![], SpecialTokens::default());
+        assert!(vocab.is_empty());
+        assert_eq!(vocab.len(), 0);
+    }
+}
