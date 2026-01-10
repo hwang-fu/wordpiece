@@ -77,7 +77,22 @@ impl Tokenizer {
 
         // Step 4: WordPiece tokenization
         let mut token_ids = Vec::new();
-        for pre_token in pre_tokens {}
+        for pre_token in pre_tokens {
+            let token = self.tokenize_word(&pre_token);
+            token_ids.extend(token);
+        }
+
+        // Step 5: Add special tokens
+        if self.config.add_special_tokens {
+            token_ids = self.add_special_tokens(token_ids);
+        }
+
+        // Step 6: Truncation
+        if self.config.truncation
+            && let Some(max_len) = self.config.max_length
+        {
+            token_ids.truncate(max_len);
+        }
 
         token_ids
     }
@@ -86,45 +101,53 @@ impl Tokenizer {
     ///
     /// Attempts to find the longest matching prefix in the vocabulary,
     /// then continues with the remainder using the subword prefix.
-    pub fn tokenize_word(&self, word: &str) -> Vec<usize> {
+    fn tokenize_word(&self, word: &str) -> Vec<usize> {
         let mut tokens = Vec::new();
-
         if word.is_empty() {
             return tokens;
         }
 
-        let unk_id = self.vocab.unk_id().unwrap_or(0);
+        // Get the [UNK] token id for unknown subwords.
+        // Panic if vocab doesn't have [UNK] — this is a configuration error.
+        let unk_id = self.vocab.unk_id().expect("vocab must have [UNK] token");
+
+        // Convert to Vec<char> for proper Unicode handling.
+        // This allows us to slice by character index, not byte index.
         let chars: Vec<char> = word.chars().collect();
         let mut start = 0;
-        let word_len = chars.len();
 
-        while start < word_len {
-            let mut end = word_len;
-            let mut found = false;
+        // Reusable buffer to avoid allocations in the inner loop.
+        // Pre-allocate enough space for the word + prefix (e.g., "##").
+        let mut buffer = String::with_capacity(word.len() + self.continuing_subword_prefix.len());
 
-            while start < end {
-                // Build the substring
-                let substr: String = chars[start..end].iter().collect();
-                let lookup = if start == 0 {
-                    substr.clone()
-                } else {
-                    format!("{}{}", self.continuing_subword_prefix, substr)
-                };
+        // Greedy longest-match loop:
+        // For each position, try to find the longest substring that exists in vocab.
+        while start < chars.len() {
+            // Search from longest to shortest substring (greedy matching).
+            // `(start + 1..=chars.len()).rev()` generates: [len, len-1, ..., start+1]
+            let matched = (start + 1..=chars.len()).rev().find_map(|end| {
+                buffer.clear();
 
-                if let Some(id) = self.vocab.get_id(&lookup) {
-                    tokens.push(id);
-                    found = true;
-                    start = end;
-                    break;
+                // For continuation tokens (not the first piece), prepend the
+                // subword prefix (typically "##" for BERT-style tokenizers).
+                if start > 0 {
+                    buffer.push_str(&self.continuing_subword_prefix);
                 }
+                buffer.extend(&chars[start..end]);
 
-                end -= 1;
-            }
+                // Return (token_id, end_position) if found in vocab.
+                self.vocab.get_id(&buffer).map(|id| (id, end))
+            });
 
-            if !found {
-                // No match found, emit [UNK] and move forward one character
-                tokens.push(unk_id);
-                start += 1;
+            match matched {
+                Some((id, end)) => {
+                    tokens.push(id);
+                    start = end;
+                }
+                None => {
+                    tokens.push(unk_id);
+                    start += 1;
+                }
             }
         }
 
