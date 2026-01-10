@@ -31,7 +31,17 @@ impl Tokenizer {
     /// Creates a new tokenizer with custom configuration.
     pub fn with_config(vocab: Vocab, config: TokenizerConfig) -> Self {
         let continuing_subword_prefix = "##".to_string();
-        Self {
+        Tokenizer {
+            vocab,
+            config,
+            continuing_subword_prefix,
+        }
+    }
+
+    /// Creates a new tokenizer with the given vocabulary and custom configuration and prefix.
+    pub fn from(vocab: Vocab, config: TokenizerConfig, prefix: impl Into<String>) -> Self {
+        let continuing_subword_prefix = prefix.into();
+        Tokenizer {
             vocab,
             config,
             continuing_subword_prefix,
