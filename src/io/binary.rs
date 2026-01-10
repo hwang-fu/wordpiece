@@ -124,7 +124,7 @@ where
     let mut offset = 13;
 
     for _ in 0..vocab_size {
-        if offset >= checksum_offset {
+        if offset + 8 > checksum_offset {
             return Err(WordPieceError::InvalidVocabFile(format!(
                 "Unexpected end of file in {} while reading tokens",
                 path.display()
