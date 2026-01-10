@@ -76,4 +76,23 @@ impl WordPieceTrainer {
 
         symbols
     }
+
+    /// Counts all adjacent symbol pairs across all words.
+    fn count_pairs(&self, words: &[Word]) -> HashMap<(String, String), usize> {
+        let mut pair_counts = HashMap::new();
+
+        for word in words {
+            if word.symbols.len() < 2 {
+                continue;
+            }
+
+            let word_len = word.symbols.len();
+            for i in 0..word_len - 1 {
+                let pair = (word.symbols[i].clone(), word.symbols[i + 1].clone());
+                *(pair_counts.entry(pair).or_insert(0)) += word.count;
+            }
+        }
+
+        pair_counts
+    }
 }
