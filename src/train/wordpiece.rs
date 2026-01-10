@@ -15,3 +15,10 @@ struct Word {
 pub struct WordPieceTrainer {
     config: TrainingConfig,
 }
+
+impl WordPieceTrainer {
+    /// Creates a new trainer with the given configuration.
+    pub fn new(config: TrainingConfig) -> Self {
+        Self { config }
+    }
+}
