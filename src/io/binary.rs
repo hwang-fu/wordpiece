@@ -61,6 +61,7 @@ where
     Ok(())
 }
 
+/// Loads a vocabulary from a binary file.
 pub fn load_vocab_binary<P>(path: P, special_tokens: SpecialTokens) -> Result<Vocab>
 where
     P: AsRef<Path>,
@@ -99,7 +100,7 @@ where
     // Verify magic bytes
     if &data[0..=3] != MAGIC {
         return Err(WordPieceError::InvalidVocabFile(format!(
-            "Invalid magic bytes - {} is not not a WordPiece vocabulary file",
+            "Invalid magic bytes - {} is not a WordPiece vocabulary file",
             path.display()
         )));
     }
@@ -176,4 +177,73 @@ fn crc32(data: &[u8]) -> u32 {
     }
 
     !crc
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::NamedTempFile;
+
+    fn create_test_vocab() -> Vocab {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "hello".to_string(),
+            "world".to_string(),
+            "##ing".to_string(),
+        ];
+        Vocab::new(tokens, SpecialTokens::default())
+    }
+
+    #[test]
+    fn test_save_load_binary() {
+        let vocab = create_test_vocab();
+        let temp_file = NamedTempFile::new().unwrap();
+
+        save_vocab_binary(&vocab, temp_file.path()).unwrap();
+        let loaded = load_vocab_binary(temp_file.path(), SpecialTokens::default()).unwrap();
+
+        assert_eq!(loaded.len(), vocab.len());
+        for id in 0..vocab.len() {
+            assert_eq!(vocab.get_token(id), loaded.get_token(id));
+        }
+    }
+
+    #[test]
+    fn test_binary_magic_validation() {
+        let temp_file = NamedTempFile::new().unwrap();
+
+        // Write invalid data
+        std::fs::write(temp_file.path(), b"INVALID_DATA_HERE").unwrap();
+
+        let result = load_vocab_binary(temp_file.path(), SpecialTokens::default());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_binary_checksum_validation() {
+        let vocab = create_test_vocab();
+        let temp_file = NamedTempFile::new().unwrap();
+
+        save_vocab_binary(&vocab, temp_file.path()).unwrap();
+
+        // Corrupt the file
+        let mut data = std::fs::read(temp_file.path()).unwrap();
+        if data.len() > 10 {
+            data[10] ^= 0xFF; // Flip some bits
+        }
+        std::fs::write(temp_file.path(), &data).unwrap();
+
+        let result = load_vocab_binary(temp_file.path(), SpecialTokens::default());
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_crc32() {
+        // Test vector: "123456789" should give 0xCBF43926
+        let data = b"123456789";
+        assert_eq!(crc32(data), 0xCBF43926);
+    }
 }
