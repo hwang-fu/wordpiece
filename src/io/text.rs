@@ -48,6 +48,9 @@ where
     Ok(())
 }
 
+/// Loads a vocabulary from a plain text file.
+///
+/// Expects one token per line. Lines starting with '#' are ignored.
 pub fn load_vocab_text<P>(path: P, special_tokens: SpecialTokens) -> Result<Vocab>
 where
     P: AsRef<Path>,
