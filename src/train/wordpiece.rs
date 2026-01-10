@@ -79,7 +79,7 @@ impl WordPieceTrainer {
 
     /// Counts all adjacent symbol pairs across all words.
     fn count_pairs(&self, words: &[Word]) -> HashMap<(String, String), usize> {
-        let mut pair_counts = HashMap::new();
+        let mut pair_freq = HashMap::new();
 
         for word in words {
             if word.symbols.len() < 2 {
@@ -89,10 +89,48 @@ impl WordPieceTrainer {
             let word_len = word.symbols.len();
             for i in 0..word_len - 1 {
                 let pair = (word.symbols[i].clone(), word.symbols[i + 1].clone());
-                *(pair_counts.entry(pair).or_insert(0)) += word.count;
+                *(pair_freq.entry(pair).or_insert(0)) += word.count;
             }
         }
 
-        pair_counts
+        pair_freq
+    }
+
+    /// Finds the best pair to merge using WordPiece scoring.
+    ///
+    /// Score = pair_count / (count(left) * count(right))
+    /// This favors pairs where both parts frequently appear together.
+    fn find_best_pair(
+        &self,
+        pair_freq: &HashMap<(String, String), usize>,
+    ) -> Option<(String, String)> {
+        let mut best_pair = None;
+        let mut best_score = f64::NEG_INFINITY;
+
+        // First, count individual symbol frequencies
+        let mut symbol_freq = HashMap::new();
+        for ((left, right), &freq) in pair_freq.iter() {
+            *(symbol_freq.entry(left).or_insert(0)) += freq;
+            *(symbol_freq.entry(right).or_insert(0)) += freq;
+        }
+
+        // Then, find pair with the highest score
+        for ((left, right), freq) in pair_freq.iter() {
+            let left_freq = symbol_freq.get(left).unwrap_or(&1);
+            let left_freq = *left_freq as f64;
+
+            let right_freq = symbol_freq.get(right).unwrap_or(&1);
+            let right_freq = *right_freq as f64;
+
+            let freq = *freq as f64;
+
+            let score = freq / (left_freq * right_freq);
+            if score > best_score {
+                best_score = score;
+                best_pair = Some((left.clone(), right.clone()));
+            }
+        }
+
+        best_pair
     }
 }
