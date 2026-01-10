@@ -30,6 +30,13 @@ impl Default for SpecialTokens {
     }
 }
 
+impl SpecialTokens {
+    /// Returns all special tokens as a vector.
+    pub fn all_tokens(&self) -> Vec<&str> {
+        vec![&self.pad, &self.unk, &self.cls, &self.sep, &self.mask]
+    }
+}
+
 /// Configuration for the tokenizer's encoding behavior.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenizerConfig {
