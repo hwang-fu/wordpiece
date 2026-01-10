@@ -146,4 +146,20 @@ impl WordPieceTrainer {
 
         best_pair
     }
+
+    /// Merges a pair of symbols into all words.
+    fn merge_pair(&self, words: &mut [Word], left: &str, right: &str, merged: &str) {
+        for word in words.iter_mut() {
+            let mut i = 0;
+            while i < word.symbols.len().saturating_sub(1) {
+                if word.symbols[i] == left && word.symbols[i + 1] == right {
+                    word.symbols[i] = merged.to_string();
+                    word.symbols.remove(i + 1);
+                    // Don't increment i - check if we can merge again at same position
+                } else {
+                    i += 1;
+                }
+            }
+        }
+    }
 }
