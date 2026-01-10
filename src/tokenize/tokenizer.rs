@@ -82,6 +82,55 @@ impl Tokenizer {
         token_ids
     }
 
+    /// Tokenizes a single word using the WordPiece algorithm.
+    ///
+    /// Attempts to find the longest matching prefix in the vocabulary,
+    /// then continues with the remainder using the subword prefix.
+    pub fn tokenize_word(&self, word: &str) -> Vec<usize> {
+        let mut tokens = Vec::new();
+
+        if word.is_empty() {
+            return tokens;
+        }
+
+        let unk_id = self.vocab.unk_id().unwrap_or(0);
+        let chars: Vec<char> = word.chars().collect();
+        let mut start = 0;
+        let word_len = chars.len();
+
+        while start < word_len {
+            let mut end = word_len;
+            let mut found = false;
+
+            while start < end {
+                // Build the substring
+                let substr: String = chars[start..end].iter().collect();
+                let lookup = if start == 0 {
+                    substr.clone()
+                } else {
+                    format!("{}{}", self.continuing_subword_prefix, substr)
+                };
+
+                if let Some(id) = self.vocab.get_id(&lookup) {
+                    tokens.push(id);
+                    found = true;
+                    start = end;
+                    break;
+                }
+
+                end -= 1;
+            }
+
+            if !found {
+                // No match found, emit [UNK] and move forward one character
+                tokens.push(unk_id);
+                start += 1;
+            }
+        }
+
+        tokens
+    }
+
     /// Adds [CLS] and [SEP] tokens around the token IDs.
     fn add_special_tokens(&self, mut token_ids: Vec<usize>) -> Vec<usize> {
         let cls_id = self.vocab.cls_id();
