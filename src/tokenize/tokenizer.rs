@@ -158,6 +158,11 @@ impl Tokenizer {
         self.decode(ids, false)
     }
 
+    /// Decodes token IDs, removing special tokens from output.
+    pub fn decode_without_special(&self, ids: &[usize]) -> String {
+        self.decode(ids, true)
+    }
+
     /// Tokenizes a single word using the WordPiece algorithm.
     ///
     /// Attempts to find the longest matching prefix in the vocabulary,
