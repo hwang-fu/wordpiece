@@ -45,3 +45,16 @@ pub trait ProgressCallback {
 /// Use this when you don't need progress reporting.
 #[derive(Debug, Default)]
 pub struct NoOpProgress;
+
+impl ProgressCallback for NoOpProgress {
+    fn on_start(&mut self, _target_vocab_size: usize, _initial_vocab_size: usize) {}
+    fn on_progress(&mut self, _progress: &TrainingProgress) {}
+    fn on_complete(&mut self, _final_vocab_size: usize) {}
+}
+
+/// A simple progress callback that prints to stderr.
+#[derive(Debug)]
+pub struct PrintProgress {
+    /// How often to print (every N iterations)
+    pub print_every_n_iteration: usize,
+}
