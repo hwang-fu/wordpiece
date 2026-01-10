@@ -4,12 +4,13 @@
 //! Lines starting with '#' are comments (for metadata).
 
 use std::{
+    fmt::format,
     fs::File,
-    io::{BufWriter, Write},
+    io::{BufRead, BufReader, BufWriter, Write},
     path::Path,
 };
 
-use crate::{Result, Vocab};
+use crate::{Result, SpecialTokens, Vocab, WordPieceError};
 
 /// Saves a vocabulary to a plain text file.
 ///
@@ -45,4 +46,105 @@ where
     writer.flush()?;
 
     Ok(())
+}
+
+pub fn load_vocab_text<P>(path: P, special_tokens: SpecialTokens) -> Result<Vocab>
+where
+    P: AsRef<Path>,
+{
+    let path = path.as_ref();
+    let file = File::open(path)?;
+    let reader = BufReader::new(file);
+
+    let mut tokens = Vec::new();
+    for line in reader.lines() {
+        let line = line?;
+
+        // Skip comment lines
+        if line.starts_with('#') {
+            continue;
+        }
+
+        // Skip empty lines
+        if line.is_empty() {
+            continue;
+        }
+
+        tokens.push(line);
+    }
+
+    if tokens.is_empty() {
+        return Err(WordPieceError::InvalidVocabFile(format!(
+            "{} is empty",
+            path.display()
+        )));
+    }
+
+    Ok(Vocab::new(tokens, special_tokens))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::io::Read;
+    use tempfile::NamedTempFile;
+
+    fn create_test_vocab() -> Vocab {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "hello".to_string(),
+            "world".to_string(),
+        ];
+        Vocab::new(tokens, SpecialTokens::default())
+    }
+
+    #[test]
+    fn test_save_vocab_text() {
+        let vocab = create_test_vocab();
+        let temp_file = NamedTempFile::new().unwrap();
+
+        save_vocab_text(&vocab, temp_file.path()).unwrap();
+
+        // Read and verify
+        let mut content = String::new();
+        File::open(temp_file.path())
+            .unwrap()
+            .read_to_string(&mut content)
+            .unwrap();
+
+        assert!(content.contains("[PAD]"));
+        assert!(content.contains("hello"));
+        assert!(content.contains("world"));
+    }
+
+    #[test]
+    fn test_load_vocab_text() {
+        let vocab = create_test_vocab();
+        let temp_file = NamedTempFile::new().unwrap();
+
+        // Save then load
+        save_vocab_text(&vocab, temp_file.path()).unwrap();
+        let loaded = load_vocab_text(temp_file.path(), SpecialTokens::default()).unwrap();
+
+        assert_eq!(loaded.len(), vocab.len());
+        assert_eq!(loaded.get_id("[PAD]"), Some(0));
+        assert_eq!(loaded.get_id("hello"), Some(4));
+    }
+
+    #[test]
+    fn test_roundtrip_text() {
+        let vocab = create_test_vocab();
+        let temp_file = NamedTempFile::new().unwrap();
+
+        save_vocab_text(&vocab, temp_file.path()).unwrap();
+        let loaded = load_vocab_text(temp_file.path(), SpecialTokens::default()).unwrap();
+
+        // Verify all tokens match
+        for id in 0..vocab.len() {
+            assert_eq!(vocab.get_token(id), loaded.get_token(id));
+        }
+    }
 }
