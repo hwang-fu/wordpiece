@@ -116,10 +116,23 @@ impl WordPieceTrainer {
 
         // Then, find pair with the highest score
         for ((left, right), freq) in pair_freq.iter() {
-            let left_freq = symbol_freq.get(left).unwrap_or(&1);
+            let left_freq = symbol_freq.get(left).expect(
+                format!(
+                    "{} is supposed to have a frequency greater than or equal to 1",
+                    left
+                )
+                .as_str(),
+            );
             let left_freq = *left_freq as f64;
 
-            let right_freq = symbol_freq.get(right).unwrap_or(&1);
+            let right_freq = symbol_freq.get(right).expect(
+                format!(
+                    "{} is supposed to have a frequency greater than or equal to 1",
+                    right
+                )
+                .as_str(),
+            );
+
             let right_freq = *right_freq as f64;
 
             let freq = *freq as f64;
