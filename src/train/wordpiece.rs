@@ -1,6 +1,8 @@
 //! WordPiece training algorithm.
 
-use crate::train::TrainingConfig;
+use std::collections::HashMap;
+
+use crate::{Vocab, train::TrainingConfig};
 
 /// Represents a word split into subword units during training.
 #[derive(Debug, Clone)]
@@ -20,5 +22,58 @@ impl WordPieceTrainer {
     /// Creates a new trainer with the given configuration.
     pub fn new(config: TrainingConfig) -> Self {
         Self { config }
+    }
+
+    /// Trains a vocabulary from word frequencies.
+    ///
+    /// # Arguments
+    /// * `word_counts` - Map of words to their frequencies
+    /// * `alphabet` - Initial character alphabet
+    ///
+    /// # Returns
+    /// A trained `Vocab` ready for tokenization
+    pub fn train(&self, word_counts: &HashMap<String, usize>, alphabet: Vec<char>) -> Vocab {
+        // Initialize vocabulary with special tokens and alphabet
+        let mut vocab_tokens: Vec<String> = Vec::new();
+
+        // Add special tokens first
+        let special_tokens = self.config.get_special_tokens();
+        for special_token in special_tokens.all_tokens() {
+            if !special_token.is_empty() && !vocab_tokens.contains(&special_token.to_string()) {
+                vocab_tokens.push(special_token.to_string());
+            }
+        }
+
+        // Add alphabet characters (as single-char tokens)
+        for c in &alphabet {
+            let token = c.to_string();
+            if !vocab_tokens.contains(&token) {
+                vocab_tokens.push(token);
+            }
+        }
+
+        // Convert words to symbol sequences, filtering by `min_frequency` configured
+        let min_frequency = self.config.get_min_frequency();
+
+        panic!("not finished yet");
+    }
+
+    /// Converts a word into initial symbol sequence.
+    ///
+    /// First character stays as-is, subsequent characters get the
+    /// continuing subword prefix (e.g., "##").
+    fn word_to_symbols(&self, word: &str) -> Vec<String> {
+        let prefix = self.config.get_continuing_subword_prefix();
+        let mut symbols = Vec::new();
+
+        for (i, c) in word.chars().enumerate() {
+            if i == 0 {
+                symbols.push(c.to_string());
+            } else {
+                symbols.push(format!("{}{}", prefix, c));
+            }
+        }
+
+        symbols
     }
 }
