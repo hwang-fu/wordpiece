@@ -1,5 +1,7 @@
 //! WordPiece tokenizer for encoding and decoding text.
 
+use std::collections::HashSet;
+
 use crate::{
     TokenizerConfig, Vocab, normalize_nfc,
     pre_tokenize::{pre_tokenize_bert, split_cjk},
@@ -83,14 +85,12 @@ impl Tokenizer {
         }
 
         // Step 5: Add special tokens
-        if self.config.add_special_tokens {
-            token_ids = self.add_special_tokens(token_ids);
+        if self.config.wrap_with_cls_sep {
+            token_ids = self.wrap_with_cls_sep(token_ids);
         }
 
         // Step 6: Truncation
-        if self.config.truncation
-            && let Some(max_len) = self.config.max_length
-        {
+        if let Some(max_len) = self.config.max_length {
             token_ids.truncate(max_len);
         }
 
@@ -105,6 +105,52 @@ impl Tokenizer {
         ids.into_iter()
             .filter_map(|id| self.vocab.get_token(id).map(|s| s.to_string()))
             .collect()
+    }
+
+    /// Decodes token IDs back to text.
+    ///
+    /// Joins tokens together, handling the subword prefix by concatenating
+    /// without spaces. Special tokens are optionally removed.
+    ///
+    /// # Arguments
+    /// * `ids` - The token IDs to decode
+    /// * `skip_special_tokens` - Whether to skip special tokens in output
+    ///
+    /// # Returns
+    /// The decoded text string
+    pub fn decode(&self, ids: &[usize], skip_special_tokens: bool) -> String {
+        let special_tokens = self.vocab.special_tokens();
+        let special_tokens_set: HashSet<&str> = special_tokens.all_tokens().into_iter().collect();
+
+        let mut s = String::new();
+        let mut first_token = true;
+
+        for &id in ids.iter() {
+            let Some(token) = self.vocab.get_token(id) else {
+                continue; // Skip unknown IDs
+            };
+
+            // Skip special tokens if configured
+            if skip_special_tokens && special_tokens_set.contains(token) {
+                continue;
+            }
+
+            if token.starts_with(&self.continuing_subword_prefix) {
+                // Continuation token: remove prefix and concatenate directly
+                let suffix = &token[self.continuing_subword_prefix.len()..];
+                s.push_str(suffix);
+            } else {
+                // Regular token: add space before (except for first token)
+                if !first_token {
+                    s.push(' ');
+                }
+                s.push_str(token);
+            }
+
+            first_token = false;
+        }
+
+        s
     }
 
     /// Tokenizes a single word using the WordPiece algorithm.
@@ -165,7 +211,7 @@ impl Tokenizer {
     }
 
     /// Adds [CLS] and [SEP] tokens around the token IDs.
-    fn add_special_tokens(&self, mut token_ids: Vec<usize>) -> Vec<usize> {
+    fn wrap_with_cls_sep(&self, mut token_ids: Vec<usize>) -> Vec<usize> {
         let cls_id = self.vocab.cls_id();
         let sep_id = self.vocab.sep_id();
 
@@ -237,13 +283,12 @@ mod tests {
         let tokens = vec!["[UNK]".to_string()];
         let vocab = Vocab::new(tokens, SpecialTokens::default());
         let config = TokenizerConfig {
-            add_special_tokens: false,
+            wrap_with_cls_sep: false,
             max_length: Some(512),
-            truncation: true,
         };
         let tokenizer = Tokenizer::with_config(vocab, config);
 
-        assert!(!tokenizer.config().add_special_tokens);
+        assert!(!tokenizer.config().wrap_with_cls_sep);
         assert_eq!(tokenizer.config().max_length.as_ref(), Some(&512));
     }
 
@@ -296,8 +341,8 @@ mod tests {
         let tokenizer = create_full_tokenizer();
         let ids = tokenizer.encode("xyz");
 
-        // "xyz" not in vocab, should produce [UNK]
-        // With special tokens: [CLS] [UNK] [SEP] (or multiple [UNK]s)
+        // "xyz" not in vocab, each character produces [UNK]
+        // With special tokens: [CLS] [UNK] [UNK] [UNK] [SEP]
         assert!(ids.contains(&tokenizer.vocab().unk_id().unwrap()));
     }
 
@@ -312,9 +357,8 @@ mod tests {
         ];
         let vocab = Vocab::new(tokens, SpecialTokens::default());
         let config = TokenizerConfig {
-            add_special_tokens: false,
+            wrap_with_cls_sep: false,
             max_length: None,
-            truncation: false,
         };
         let tokenizer = Tokenizer::with_config(vocab, config);
         let ids = tokenizer.encode("hello");
@@ -328,9 +372,8 @@ mod tests {
     fn test_encode_truncation() {
         let tokenizer = create_full_tokenizer();
         let config = TokenizerConfig {
-            add_special_tokens: true,
+            wrap_with_cls_sep: true,
             max_length: Some(3),
-            truncation: true,
         };
         let tokenizer = Tokenizer::with_config(tokenizer.vocab().clone(), config);
         let ids = tokenizer.encode("hello world");
