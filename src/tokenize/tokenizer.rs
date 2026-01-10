@@ -97,6 +97,16 @@ impl Tokenizer {
         token_ids
     }
 
+    /// Encodes text into token strings (useful for debugging).
+    ///
+    /// Same as `encode` but returns token strings instead of IDs.
+    pub fn encode_to_tokens(&self, text: &str) -> Vec<String> {
+        let ids = self.encode(text);
+        ids.iter()
+            .filter_map(|&id| self.vocab.get_token(id).map(|s| s.to_string()))
+            .collect()
+    }
+
     /// Tokenizes a single word using the WordPiece algorithm.
     ///
     /// Attempts to find the longest matching prefix in the vocabulary,
