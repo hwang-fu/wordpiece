@@ -1,8 +1,15 @@
 //! WordPiece training algorithm.
 
+use core::panic;
 use std::collections::HashMap;
 
-use crate::{Vocab, train::TrainingConfig};
+use crate::{
+    Vocab,
+    train::{
+        TrainingConfig,
+        progress::{ProgressCallback, TrainingProgress},
+    },
+};
 
 /// Represents a word split into subword units during training.
 #[derive(Debug, Clone)]
@@ -63,9 +70,9 @@ impl WordPieceTrainer {
             })
             .collect();
 
-        // Iteratively merge best pairs until vocab_size is reached
-        let vocab_size = self.config.get_vocab_size();
-        while vocab_tokens.len() < vocab_size {
+        // Iteratively merge best pairs until target_vocab_size is reached
+        let target_vocab_size = self.config.get_vocab_size();
+        while vocab_tokens.len() < target_vocab_size {
             // Count all adjacent pairs
             let pair_counts = self.count_pairs(&words);
             if pair_counts.is_empty() {
@@ -89,6 +96,95 @@ impl WordPieceTrainer {
                 vocab_tokens.push(merged);
             }
         }
+
+        Vocab::new(vocab_tokens, special_tokens)
+    }
+
+    pub fn train_with_progress<P>(
+        &self,
+        word_counts: &HashMap<String, usize>,
+        alphabet: Vec<char>,
+        progress: &mut P,
+    ) -> Vocab
+    where
+        P: ProgressCallback,
+    {
+        let mut vocab_tokens = Vec::new();
+
+        // Add special tokens first
+        let special_tokens = self.config.get_special_tokens().clone();
+        for special_token in special_tokens.all_tokens() {
+            if !special_token.is_empty() && !vocab_tokens.contains(&special_token.to_string()) {
+                vocab_tokens.push(special_token.to_string());
+            }
+        }
+
+        // Add alphabet characters (as single-char tokens)
+        for c in &alphabet {
+            let token = c.to_string();
+            if !vocab_tokens.contains(&token) {
+                vocab_tokens.push(token);
+            }
+        }
+
+        let initial_vocab_size = vocab_tokens.len();
+        let target_vocab_size = self.config.get_vocab_size();
+        // Notify progress start
+        progress.on_start(target_vocab_size, initial_vocab_size);
+
+        // Convert words to symbol sequences, filtering by `min_frequency` configured
+        let min_frequency = self.config.get_min_frequency();
+        let mut words: Vec<Word> = word_counts
+            .iter()
+            .filter(|&(_word, &freq)| freq >= min_frequency)
+            .map(|(word, &count)| {
+                let symbols = self.word_to_symbols(word);
+                Word { symbols, count }
+            })
+            .collect();
+
+        let mut iteration = 0;
+
+        while vocab_tokens.len() < target_vocab_size {
+            // Count all adjacent pairs
+            let pair_counts = self.count_pairs(&words);
+            if pair_counts.is_empty() {
+                break;
+            }
+
+            // Find the best pair (with the highest score)
+            let best_pair = self.find_best_pair(&pair_counts);
+            if best_pair.is_none() {
+                break;
+            }
+
+            let (left, right) = best_pair.unwrap();
+            let merged = format!("{}{}", left, right);
+
+            // Update all words by merging this pair
+            self.merge_pair(&mut words, &left, &right, &merged);
+
+            // Add merged token to vocabulary (if not present)
+            if !vocab_tokens.contains(&merged) {
+                vocab_tokens.push(merged.clone());
+            }
+
+            // Report progress
+            iteration += 1;
+            let current_vocab_size = vocab_tokens.len();
+            let merged_pair = Some((left, right));
+            let merged_token = Some(merged);
+            progress.on_progress(&TrainingProgress {
+                current_vocab_size,
+                target_vocab_size,
+                iteration,
+                merged_pair,
+                merged_token,
+            });
+        }
+
+        // Notify complete
+        progress.on_complete(vocab_tokens.len());
 
         Vocab::new(vocab_tokens, special_tokens)
     }
@@ -259,6 +355,7 @@ mod tests {
         word_counts.insert("newest".to_string(), 6);
         word_counts.insert("widest".to_string(), 3);
 
+        // let alphabet: Vec<char> = "a".chars().collect();
         let alphabet: Vec<char> = "lownerstwidest".chars().collect();
         let vocab = trainer.train(&word_counts, alphabet);
 
