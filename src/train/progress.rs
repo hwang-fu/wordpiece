@@ -39,3 +39,9 @@ pub trait ProgressCallback {
     /// Called when training completes.
     fn on_complete(&mut self, final_vocab_size: usize);
 }
+
+/// A no-op progress callback that does nothing.
+///
+/// Use this when you don't need progress reporting.
+#[derive(Debug, Default)]
+pub struct NoOpProgress;
