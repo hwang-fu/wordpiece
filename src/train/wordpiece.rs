@@ -6,8 +6,7 @@ use std::collections::HashMap;
 use crate::{
     Vocab,
     train::{
-        TrainingConfig,
-        progress::{ProgressCallback, TrainingProgress},
+        TrainingConfig, {NoOpProgress, ProgressCallback, TrainingProgress},
     },
 };
 
@@ -40,64 +39,7 @@ impl WordPieceTrainer {
     /// # Returns
     /// A trained `Vocab` ready for tokenization
     pub fn train(&self, word_counts: &HashMap<String, usize>, alphabet: Vec<char>) -> Vocab {
-        // Initialize vocabulary with special tokens and alphabet
-        let mut vocab_tokens: Vec<String> = Vec::new();
-
-        // Add special tokens first
-        let special_tokens = self.config.get_special_tokens().clone();
-        for special_token in special_tokens.all_tokens() {
-            if !special_token.is_empty() && !vocab_tokens.contains(&special_token.to_string()) {
-                vocab_tokens.push(special_token.to_string());
-            }
-        }
-
-        // Add alphabet characters (as single-char tokens)
-        for c in &alphabet {
-            let token = c.to_string();
-            if !vocab_tokens.contains(&token) {
-                vocab_tokens.push(token);
-            }
-        }
-
-        // Convert words to symbol sequences, filtering by `min_frequency` configured
-        let min_frequency = self.config.get_min_frequency();
-        let mut words: Vec<Word> = word_counts
-            .iter()
-            .filter(|&(_word, &freq)| freq >= min_frequency)
-            .map(|(word, &count)| {
-                let symbols = self.word_to_symbols(word);
-                Word { symbols, count }
-            })
-            .collect();
-
-        // Iteratively merge best pairs until target_vocab_size is reached
-        let target_vocab_size = self.config.get_vocab_size();
-        while vocab_tokens.len() < target_vocab_size {
-            // Count all adjacent pairs
-            let pair_counts = self.count_pairs(&words);
-            if pair_counts.is_empty() {
-                break;
-            }
-
-            // Find the best pair (with the highest score)
-            let best_pair = self.find_best_pair(&pair_counts);
-            if best_pair.is_none() {
-                break;
-            }
-
-            let (left, right) = best_pair.unwrap();
-            let merged = format!("{}{}", left, right);
-
-            // Update all words by merging this pair
-            self.merge_pair(&mut words, &left, &right, &merged);
-
-            // Add merged token to vocabulary (if not present)
-            if !vocab_tokens.contains(&merged) {
-                vocab_tokens.push(merged);
-            }
-        }
-
-        Vocab::new(vocab_tokens, special_tokens)
+        self.train_with_progress(word_counts, alphabet, &mut NoOpProgress)
     }
 
     pub fn train_with_progress<P>(
