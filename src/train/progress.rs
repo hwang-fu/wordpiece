@@ -14,3 +14,14 @@ pub struct TrainingPogress {
     /// The resulting merged token (if any)
     pub merged_token: Option<String>,
 }
+
+impl TrainingPogress {
+    /// Returns the progress as a percentage (0.0 to 100.0).
+    pub fn percentage(&self) -> f64 {
+        if self.target_vocab_size == 0 {
+            100.0
+        } else {
+            (self.current_vocab_size as f64 / self.target_vocab_size as f64) * 100.0
+        }
+    }
+}
