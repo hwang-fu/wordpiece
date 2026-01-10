@@ -27,4 +27,14 @@ impl Tokenizer {
             continuing_subword_prefix,
         }
     }
+
+    /// Creates a new tokenizer with custom configuration.
+    pub fn with_config(vocab: Vocab, config: TokenizerConfig) -> Self {
+        let continuing_subword_prefix = "##".to_string();
+        Self {
+            vocab,
+            config,
+            continuing_subword_prefix,
+        }
+    }
 }
