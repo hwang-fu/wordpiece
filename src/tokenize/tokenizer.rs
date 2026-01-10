@@ -1,0 +1,17 @@
+//! WordPiece tokenizer for encoding and decoding text.
+
+use crate::{TokenizerConfig, Vocab};
+
+/// The main tokenizer struct for encoding and decoding text.
+///
+/// Holds a vocabulary and configuration, providing methods to convert
+/// text to token IDs and back.
+#[derive(Debug, Clone)]
+pub struct Tokenizer {
+    /// The vocabulary for token-ID mappings
+    vocab: Vocab,
+    /// Configuration for encoding behavior
+    config: TokenizerConfig,
+    /// Prefix for continuing subwords (e.g., "##")
+    continuing_subword_prefix: String,
+}
