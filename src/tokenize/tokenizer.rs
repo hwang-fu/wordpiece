@@ -37,4 +37,8 @@ impl Tokenizer {
             continuing_subword_prefix,
         }
     }
+
+    pub fn vocab(&self) -> &Vocab {
+        &self.vocab
+    }
 }
