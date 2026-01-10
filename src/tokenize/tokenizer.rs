@@ -154,12 +154,12 @@ impl Tokenizer {
     }
 
     /// Decodes token IDs, keeping special tokens in output.
-    pub fn decode_with_special(&self, ids: &[usize]) -> String {
+    pub fn decode_with_special_tokens(&self, ids: &[usize]) -> String {
         self.decode(ids, false)
     }
 
     /// Decodes token IDs, removing special tokens from output.
-    pub fn decode_without_special(&self, ids: &[usize]) -> String {
+    pub fn decode_without_special_tokens(&self, ids: &[usize]) -> String {
         self.decode(ids, true)
     }
 
@@ -400,5 +400,44 @@ mod tests {
         assert!(tokens.contains(&"[CLS]".to_string()));
         assert!(tokens.contains(&"hello".to_string()));
         assert!(tokens.contains(&"[SEP]".to_string()));
+    }
+
+    #[test]
+    fn test_decode_simple() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("hello world");
+        let decoded = tokenizer.decode_without_special_tokens(&ids);
+
+        assert_eq!(decoded, "hello world");
+    }
+
+    #[test]
+    fn test_decode_with_subwords() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("playing");
+        let decoded = tokenizer.decode_without_special_tokens(&ids);
+
+        assert_eq!(decoded, "playing");
+    }
+
+    #[test]
+    fn test_decode_with_special_tokens() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("hello");
+        let decoded = tokenizer.decode_with_special_tokens(&ids);
+
+        assert!(decoded.contains("[CLS]"));
+        assert!(decoded.contains("[SEP]"));
+        assert!(decoded.contains("hello"));
+    }
+
+    #[test]
+    fn test_roundtrip() {
+        let tokenizer = create_full_tokenizer();
+        let original = "hello world";
+        let ids = tokenizer.encode(original);
+        let decoded = tokenizer.decode_without_special_tokens(&ids);
+
+        assert_eq!(decoded, original);
     }
 }
