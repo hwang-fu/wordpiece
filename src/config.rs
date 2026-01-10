@@ -41,19 +41,16 @@ impl SpecialTokens {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct TokenizerConfig {
     /// Whether to add [CLS] at start and [SEP] at end (default: true)
-    pub add_special_tokens: bool,
-    /// Maximum sequence length; None means no limit
+    pub wrap_with_cls_sep: bool,
+    /// Maximum sequence length to truncate; None means no limit (default: None)
     pub max_length: Option<usize>,
-    /// Whether to truncate sequences exceeding max_length (default: true)
-    pub truncation: bool,
 }
 
 impl Default for TokenizerConfig {
     fn default() -> Self {
         TokenizerConfig {
-            add_special_tokens: true,
+            wrap_with_cls_sep: true,
             max_length: None,
-            truncation: true,
         }
     }
 }
