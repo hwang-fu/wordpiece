@@ -102,8 +102,8 @@ impl Tokenizer {
     /// Same as `encode` but returns token strings instead of IDs.
     pub fn encode_to_tokens(&self, text: &str) -> Vec<String> {
         let ids = self.encode(text);
-        ids.iter()
-            .filter_map(|&id| self.vocab.get_token(id).map(|s| s.to_string()))
+        ids.into_iter()
+            .filter_map(|id| self.vocab.get_token(id).map(|s| s.to_string()))
             .collect()
     }
 
@@ -245,5 +245,107 @@ mod tests {
 
         assert!(!tokenizer.config().add_special_tokens);
         assert_eq!(tokenizer.config().max_length.as_ref(), Some(&512));
+    }
+
+    fn create_full_tokenizer() -> Tokenizer {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "[MASK]".to_string(),
+            "hello".to_string(),
+            "world".to_string(),
+            "play".to_string(),
+            "##ing".to_string(),
+            "un".to_string(),
+            "##known".to_string(),
+            ",".to_string(),
+            "!".to_string(),
+        ];
+        let vocab = Vocab::new(tokens, SpecialTokens::default());
+        Tokenizer::new(vocab)
+    }
+
+    #[test]
+    fn test_encode_simple() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("hello world");
+
+        // Should be: [CLS] hello world [SEP]
+        assert_eq!(ids.len(), 4);
+        assert_eq!(ids[0], tokenizer.vocab().cls_id().unwrap());
+        assert_eq!(ids[1], tokenizer.vocab().get_id("hello").unwrap());
+        assert_eq!(ids[2], tokenizer.vocab().get_id("world").unwrap());
+        assert_eq!(ids[3], tokenizer.vocab().sep_id().unwrap());
+    }
+
+    #[test]
+    fn test_encode_with_subwords() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("playing");
+
+        // "playing" -> "play" + "##ing"
+        // With special tokens: [CLS] play ##ing [SEP]
+        assert!(ids.contains(&tokenizer.vocab().get_id("play").unwrap()));
+        assert!(ids.contains(&tokenizer.vocab().get_id("##ing").unwrap()));
+    }
+
+    #[test]
+    fn test_encode_unknown() {
+        let tokenizer = create_full_tokenizer();
+        let ids = tokenizer.encode("xyz");
+
+        // "xyz" not in vocab, should produce [UNK]
+        // With special tokens: [CLS] [UNK] [SEP] (or multiple [UNK]s)
+        assert!(ids.contains(&tokenizer.vocab().unk_id().unwrap()));
+    }
+
+    #[test]
+    fn test_encode_no_special_tokens() {
+        let tokens = vec![
+            "[PAD]".to_string(),
+            "[UNK]".to_string(),
+            "[CLS]".to_string(),
+            "[SEP]".to_string(),
+            "hello".to_string(),
+        ];
+        let vocab = Vocab::new(tokens, SpecialTokens::default());
+        let config = TokenizerConfig {
+            add_special_tokens: false,
+            max_length: None,
+            truncation: false,
+        };
+        let tokenizer = Tokenizer::with_config(vocab, config);
+        let ids = tokenizer.encode("hello");
+
+        // No [CLS]/[SEP], just "hello"
+        assert_eq!(ids.len(), 1);
+        assert_eq!(ids[0], tokenizer.vocab().get_id("hello").unwrap());
+    }
+
+    #[test]
+    fn test_encode_truncation() {
+        let tokenizer = create_full_tokenizer();
+        let config = TokenizerConfig {
+            add_special_tokens: true,
+            max_length: Some(3),
+            truncation: true,
+        };
+        let tokenizer = Tokenizer::with_config(tokenizer.vocab().clone(), config);
+        let ids = tokenizer.encode("hello world");
+
+        // Should be truncated to 3 tokens
+        assert_eq!(ids.len(), 3);
+    }
+
+    #[test]
+    fn test_encode_to_tokens() {
+        let tokenizer = create_full_tokenizer();
+        let tokens = tokenizer.encode_to_tokens("hello");
+
+        assert!(tokens.contains(&"[CLS]".to_string()));
+        assert!(tokens.contains(&"hello".to_string()));
+        assert!(tokens.contains(&"[SEP]".to_string()));
     }
 }

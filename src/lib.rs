@@ -4,6 +4,7 @@ mod config;
 mod error;
 mod normalize;
 mod pre_tokenize;
+mod tokenize;
 mod train;
 mod vocab;
 
