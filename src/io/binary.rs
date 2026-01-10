@@ -4,16 +4,16 @@
 //! - Magic bytes: "WPVC" (4 bytes)
 //! - Version: u8 (1 byte)
 //! - Vocab size: u64 (8 bytes)
-//! - Tokens: [length: u64, bytes: [u8; length]]...
+//! - Tokens: [ {length: u64, bytes: [u8; length]} ]
 //! - Checksum: u32 (4 bytes, CRC32 of all preceding bytes)
 
 use std::{
     fs::File,
-    io::{BufWriter, Write},
+    io::{BufReader, BufWriter, Read, Write},
     path::Path,
 };
 
-use crate::{Result, Vocab};
+use crate::{Result, SpecialTokens, Vocab, WordPieceError};
 
 /// "WordPiece Vocabulary" - Magic bytes identifying a WordPiece binary vocabulary file.
 const MAGIC: &[u8; 4] = b"WPVC";
@@ -21,6 +21,7 @@ const MAGIC: &[u8; 4] = b"WPVC";
 /// Current format version.
 const VERSION: u8 = 1;
 
+/// Saves a vocabulary to a binary file.
 pub fn save_vocab_binary<P>(vocab: &Vocab, path: P) -> Result<()>
 where
     P: AsRef<Path>,
@@ -58,6 +59,105 @@ where
     writer.flush()?;
 
     Ok(())
+}
+
+pub fn load_vocab_binary<P>(path: P, special_tokens: SpecialTokens) -> Result<Vocab>
+where
+    P: AsRef<Path>,
+{
+    let path = path.as_ref();
+    let file = File::open(path)?;
+    let mut reader = BufReader::new(file);
+
+    let mut data = Vec::new();
+    reader.read_to_end(&mut data)?;
+
+    // Need at least: magic(4) + version(1) + vocab_size(8) + checksum(4) = 17 bytes
+    if data.len() < 17 {
+        return Err(WordPieceError::InvalidVocabFile(format!(
+            "File {} is too small to be a valid vocabulary",
+            path.display()
+        )));
+    }
+
+    // Verify checksum first (last 4 bytes)
+    let checksum_offset = data.len() - 4;
+    let stored_checksum = u32::from_le_bytes([
+        data[checksum_offset],
+        data[checksum_offset + 1],
+        data[checksum_offset + 2],
+        data[checksum_offset + 3],
+    ]);
+    let computed_checksum = crc32(&data[..checksum_offset]);
+    if stored_checksum != computed_checksum {
+        return Err(WordPieceError::InvalidVocabFile(format!(
+            "Checksum mismatch - file {} may be corrupted",
+            path.display()
+        )));
+    }
+
+    // Verify magic bytes
+    if &data[0..=3] != MAGIC {
+        return Err(WordPieceError::InvalidVocabFile(format!(
+            "Invalid magic bytes - {} is not not a WordPiece vocabulary file",
+            path.display()
+        )));
+    }
+
+    // Check version
+    let version = data[4];
+    if version != VERSION {
+        return Err(WordPieceError::InvalidVocabFile(format!(
+            "Unsupported version: {} (expected {})",
+            version, VERSION
+        )));
+    }
+
+    // Read vocab size
+    let vocab_size = u64::from_le_bytes([
+        data[5], data[6], data[7], data[8], data[9], data[10], data[11], data[12],
+    ]) as usize;
+
+    // Read tokens
+    let mut tokens = Vec::with_capacity(vocab_size);
+    let mut offset = 13;
+
+    for _ in 0..vocab_size {
+        if offset >= checksum_offset {
+            return Err(WordPieceError::InvalidVocabFile(format!(
+                "Unexpected end of file in {} while reading tokens",
+                path.display()
+            )));
+        }
+
+        // Parsing the length
+        let len = u64::from_le_bytes([
+            data[offset],
+            data[offset + 1],
+            data[offset + 2],
+            data[offset + 3],
+            data[offset + 4],
+            data[offset + 5],
+            data[offset + 6],
+            data[offset + 7],
+        ]) as usize;
+        offset += 8;
+
+        if offset + len > checksum_offset {
+            return Err(WordPieceError::InvalidVocabFile(format!(
+                "Unexpected end of file in {} while reading tokens",
+                path.display()
+            )));
+        }
+
+        let token = String::from_utf8(data[offset..offset + len].to_vec()).map_err(|_| {
+            WordPieceError::InvalidVocabFile(format!("Invalid UTF-8 in file {}", path.display()))
+        })?;
+        tokens.push(token);
+        offset += len;
+    }
+
+    Ok(Vocab::new(tokens, special_tokens))
 }
 
 /// Simple CRC32 implementation (IEEE polynomial).
