@@ -9,3 +9,6 @@
 
 /// Magic bytes identifying a WordPiece binary vocabulary file.
 const MAGIC: &[u8; 4] = b"WPVC";
+
+/// Current format version.
+const VERSION: u8 = 1;
