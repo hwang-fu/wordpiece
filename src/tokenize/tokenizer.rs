@@ -38,6 +38,11 @@ impl Tokenizer {
         }
     }
 
+    /// Sets the continuing subword prefix.
+    pub fn set_continuing_subword_prefix(&mut self, prefix: impl Into<String>) {
+        self.continuing_subword_prefix = prefix.into();
+    }
+
     /// Returns a reference to the vocabulary.
     pub fn vocab(&self) -> &Vocab {
         &self.vocab
