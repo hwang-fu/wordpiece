@@ -15,3 +15,16 @@ pub struct Tokenizer {
     /// Prefix for continuing subwords (e.g., "##")
     continuing_subword_prefix: String,
 }
+
+impl Tokenizer {
+    /// Creates a new tokenizer with the given vocabulary and default configuration.
+    pub fn new(vocab: Vocab) -> Self {
+        let config = TokenizerConfig::default();
+        let continuing_subword_prefix = "##".to_string();
+        Tokenizer {
+            vocab,
+            config,
+            continuing_subword_prefix,
+        }
+    }
+}
