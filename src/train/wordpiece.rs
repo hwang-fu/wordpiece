@@ -197,6 +197,42 @@ impl WordPieceTrainer {
     }
 }
 
+/// Convenience function to train a vocabulary from a corpus file.
+///
+/// This combines all training steps:
+/// 1. Process corpus to get word frequencies
+/// 2. Extract initial alphabet
+/// 3. Train WordPiece vocabulary
+///
+/// # Arguments
+/// * `corpus_path` - Path to the corpus file
+/// * `config` - Training configuration
+///
+/// # Returns
+/// A trained `Vocab` or an error
+pub fn train_from_file<P: AsRef<std::path::Path>>(
+    corpus_path: P,
+    config: TrainingConfig,
+) -> crate::Result<Vocab> {
+    use super::{extract_alphabet, process_corpus};
+
+    // Step 1: Process corpus
+    let word_counts = process_corpus(corpus_path, config.get_lowercase())?;
+
+    // Step 2: Extract alphabet
+    let alphabet = extract_alphabet(
+        &word_counts,
+        config.get_limit_alphabet(),
+        config.get_special_tokens(),
+    );
+
+    // Step 3: Train vocabulary
+    let trainer = WordPieceTrainer::new(config);
+    let vocab = trainer.train(&word_counts, alphabet);
+
+    Ok(vocab)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -227,7 +263,7 @@ mod tests {
         let vocab = trainer.train(&word_counts, alphabet);
 
         // Should have created a vocabulary
-        assert!(vocab.len() > 0);
+        assert!(!vocab.is_empty());
         // Should contain some characters from the alphabet
         assert!(vocab.get_id("l").is_some() || vocab.get_id("##l").is_some());
     }
