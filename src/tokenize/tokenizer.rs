@@ -41,4 +41,8 @@ impl Tokenizer {
     pub fn vocab(&self) -> &Vocab {
         &self.vocab
     }
+
+    pub fn config(&self) -> &TokenizerConfig {
+        &self.config
+    }
 }
