@@ -151,22 +151,20 @@ impl WordPieceTrainer {
 
         // Then, find pair with the highest score
         for ((left, right), freq) in pair_freq.iter() {
-            let left_freq = symbol_freq.get(left).expect(
-                format!(
+            let left_freq = symbol_freq.get(left).unwrap_or_else(|| {
+                panic!(
                     "{} is supposed to have a frequency greater than or equal to 1",
                     left
                 )
-                .as_str(),
-            );
+            });
             let left_freq = *left_freq as f64;
 
-            let right_freq = symbol_freq.get(right).expect(
-                format!(
+            let right_freq = symbol_freq.get(right).unwrap_or_else(|| {
+                panic!(
                     "{} is supposed to have a frequency greater than or equal to 1",
                     right
                 )
-                .as_str(),
-            );
+            });
 
             let right_freq = *right_freq as f64;
 
@@ -196,5 +194,61 @@ impl WordPieceTrainer {
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_word_to_symbols() {
+        let config = TrainingConfig::new();
+        let trainer = WordPieceTrainer::new(config);
+
+        let symbols = trainer.word_to_symbols("hello");
+        assert_eq!(symbols, vec!["h", "##e", "##l", "##l", "##o"]);
+    }
+
+    #[test]
+    fn test_train_simple() {
+        let config = TrainingConfig::new()
+            .set_vocab_size(20)
+            .set_min_frequency(1);
+        let trainer = WordPieceTrainer::new(config);
+
+        let mut word_counts = HashMap::new();
+        word_counts.insert("low".to_string(), 5);
+        word_counts.insert("lower".to_string(), 2);
+        word_counts.insert("newest".to_string(), 6);
+        word_counts.insert("widest".to_string(), 3);
+
+        let alphabet: Vec<char> = "lownerstwidest".chars().collect();
+        let vocab = trainer.train(&word_counts, alphabet);
+
+        // Should have created a vocabulary
+        assert!(vocab.len() > 0);
+        // Should contain some characters from the alphabet
+        assert!(vocab.get_id("l").is_some() || vocab.get_id("##l").is_some());
+    }
+
+    #[test]
+    fn test_count_pairs() {
+        let config = TrainingConfig::new();
+        let trainer = WordPieceTrainer::new(config);
+
+        let words = vec![
+            Word {
+                symbols: vec!["a".to_string(), "##b".to_string()],
+                count: 3,
+            },
+            Word {
+                symbols: vec!["a".to_string(), "##b".to_string()],
+                count: 2,
+            },
+        ];
+
+        let pairs = trainer.count_pairs(&words);
+        assert_eq!(pairs.get(&("a".to_string(), "##b".to_string())), Some(&5));
     }
 }
