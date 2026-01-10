@@ -38,11 +38,18 @@ impl Tokenizer {
         }
     }
 
+    /// Returns a reference to the vocabulary.
     pub fn vocab(&self) -> &Vocab {
         &self.vocab
     }
 
+    /// Returns a reference to the configuration.
     pub fn config(&self) -> &TokenizerConfig {
         &self.config
+    }
+
+    /// Returns the continuing subword prefix.
+    pub fn continuing_subword_prefix(&self) -> &str {
+        &self.continuing_subword_prefix
     }
 }
